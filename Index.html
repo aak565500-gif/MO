@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Выполнение целей по сегментам · XS · L · M · Private</title>
+<style>
+  :root{
+    --bg:#0E141D; --panel:#18212E; --panel2:#141C27; --panel-hi:#213247;
+    --ink:#E9EEF4; --muted:#8B99AC;
+    --line:#263140; --line2:#212C3A; --rule:#334254;
+    --fact:#57A5F2; --plan:#7E8DA1;
+    --pos:#3AD07E; --neg:#F26B60;
+    --posbg:rgba(58,208,126,.14); --negbg:rgba(242,107,96,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.34);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px; line-height:1.4; -webkit-font-smoothing:antialiased;
+    font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+    background-image:radial-gradient(1100px 380px at 78% -8%, rgba(87,165,242,.10), transparent 70%);
+    background-attachment:fixed;}
+  .sheet{max-width:1200px; margin:24px auto 56px; padding:0 20px}
+
+  header.top{display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
+    padding:22px 26px; background:linear-gradient(180deg,#1B2635,#161F2C); border:1px solid var(--line);
+    border-radius:14px; box-shadow:var(--shadow); margin-bottom:18px; animation:fadeUp .5s ease both}
+  header.top h1{margin:0; font-size:22px; font-weight:700; letter-spacing:-.01em}
+  header.top .sub{margin-top:4px; color:var(--muted); font-size:13px}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--muted)}
+  .legend .it{display:flex; align-items:center; gap:7px; white-space:nowrap}
+  .lg-fact{width:22px; height:0; border-top:2.5px solid var(--fact)}
+  .lg-plan{width:22px; height:0; border-top:2px dashed var(--plan)}
+  .lg-gap{display:inline-flex; gap:3px}
+  .lg-gap i{width:3px; height:13px; display:block; border-radius:1px}
+
+  .band{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); padding:20px 22px 18px; margin-bottom:18px; break-inside:avoid;
+    animation:fadeUp .55s ease both}
+  .band:nth-of-type(1){animation-delay:.06s}
+  .band:nth-of-type(2){animation-delay:.14s}
+  .band:nth-of-type(3){animation-delay:.22s}
+  .band-head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:2px}
+  .band-title{display:flex; align-items:baseline; gap:12px}
+  .band-idx{font-size:13px; font-weight:700; color:#0E141D; background:var(--fact); width:24px; height:24px;
+    border-radius:7px; display:inline-flex; align-items:center; justify-content:center; align-self:center; font-variant-numeric:normal}
+  .band-title h2{margin:0; font-size:17px; font-weight:650}
+  .band-roll{font-size:13px; color:var(--muted)}
+  .band-roll b{font-size:15px; color:var(--ink); font-weight:700; margin-left:2px}
+  .unit-note{color:var(--muted); font-size:12px; margin:4px 0 4px}
+  .hint{color:var(--fact); font-size:12px; margin:0 0 14px; display:flex; align-items:center; gap:6px; opacity:.92}
+  .hint svg{width:13px;height:13px}
+
+  .charts{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+  .chart{border:1px solid var(--line2); border-radius:11px; padding:10px 8px 6px; background:var(--panel2)}
+  .chart.clickable{cursor:pointer;
+    transition:opacity .28s ease, filter .28s ease, background .28s ease, box-shadow .22s ease, border-color .22s ease, transform .06s ease}
+  .chart.clickable:hover{border-color:#33628f; box-shadow:0 6px 20px rgba(87,165,242,.16)}
+  .chart.clickable:active{transform:translateY(1px)}
+  /* selection: chosen chart lifts to a lighter background, siblings dim */
+  .charts.has-selection .chart.clickable:not(.selected){opacity:.34; filter:saturate(.55) brightness(.72)}
+  .chart.selected{background:var(--panel-hi);
+    border-color:var(--fact); box-shadow:0 0 0 1px var(--fact), 0 10px 30px rgba(87,165,242,.30)}
+  .chart .c-head{display:flex; align-items:baseline; justify-content:space-between; padding:0 4px 4px}
+  .chart .c-seg{font-weight:650; font-size:13px; display:flex; align-items:center; gap:5px}
+  .chart .c-seg .chev{color:var(--muted); font-size:11px; transition:transform .2s ease, color .2s ease}
+  .chart.selected .c-seg .chev{transform:rotate(90deg); color:var(--fact)}
+  .chart .c-att{font-size:12px; font-weight:700}
+  .chart svg{display:block; width:100%; height:auto}
+
+  /* chart draw-in animations */
+  .factline{stroke-dasharray:1; stroke-dashoffset:1; animation:draw 1s ease .12s forwards}
+  .planline{opacity:0; animation:fadeIn .6s ease .05s forwards}
+  .gaptick{opacity:0; animation:tickIn .5s ease .5s forwards}
+  .dot{opacity:0; animation:fadeIn .4s ease .72s forwards}
+
+  .detailwrap{display:none; margin-top:14px}
+  .detailwrap.open{display:block; animation:expand .28s ease}
+  .detail-inner{border:1px solid #2A3A4D; background:linear-gradient(180deg,#1C2836,#182333);
+    border-radius:12px; padding:14px 16px 16px}
+  .detail-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+  .detail-head .t{font-size:13.5px; font-weight:650}
+  .detail-head .t b{color:var(--fact)}
+  .detail-head .t .m{color:var(--muted); font-weight:400}
+  .detail-close{border:1px solid var(--rule); background:#243244; color:var(--muted); font-size:12px;
+    padding:4px 10px; border-radius:7px; cursor:pointer; transition:.18s}
+  .detail-close:hover{color:var(--ink); border-color:#3d5169; background:#2a3a4e}
+  .charts.two{grid-template-columns:repeat(2,1fr)}
+  .charts.two .chart{background:#15202D}
+
+  table{width:100%; border-collapse:collapse; margin-top:16px; font-size:13px}
+  caption{caption-side:top; text-align:left; color:var(--muted); font-size:12px; padding:0 0 6px}
+  th,td{padding:8px 12px; text-align:right; border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted); font-weight:600; font-size:12px; border-bottom:1px solid var(--rule)}
+  tbody tr{transition:background .15s} tbody tr:hover{background:rgba(255,255,255,.02)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.total td{border-top:1.5px solid var(--rule); font-weight:700; background:rgba(255,255,255,.035)}
+  .seg-name{font-weight:600}
+  td.wt{font-weight:600; color:#C4CEDA}
+  .wtrack{height:5px; background:#26313F; border-radius:3px; margin:4px 0 0; width:120px; margin-left:auto}
+  .wfill{height:5px; border-radius:3px; background:#5C6E85; transition:width .6s ease}
+  .num{font-variant-numeric:tabular-nums}
+  .pos{color:var(--pos)} .neg{color:var(--neg)}
+  .pill{display:inline-block; min-width:66px; text-align:center; padding:2px 8px; border-radius:6px; font-weight:700}
+  .pill.pos{background:var(--posbg)} .pill.neg{background:var(--negbg)}
+
+  footer.note{color:var(--muted); font-size:11.5px; margin:6px 2px 0; line-height:1.5}
+
+  .totalchart{border:1px solid #2C3A4C; border-radius:12px; padding:14px 16px 10px; margin:2px 0 18px;
+    background:linear-gradient(180deg,#1B2637,#172130); box-shadow:inset 0 0 0 1px rgba(87,165,242,.05)}
+  .tc-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:2px}
+  .tc-title{font-size:14px; font-weight:700; display:flex; flex-direction:column; gap:2px}
+  .tc-title .tc-sub{font-size:11.5px; font-weight:400; color:var(--muted)}
+  .tc-att{font-size:19px; font-weight:800; white-space:nowrap}
+  .totalchart svg{width:100%; height:auto}
+  .breakdown{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0 2px 12px}
+  .bd-title{font-size:13px; font-weight:650; color:#C4CEDA}
+  .bd-hint{color:var(--fact); font-size:12px; display:flex; align-items:center; gap:6px; opacity:.92}
+  .bd-hint svg{width:13px;height:13px}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{to{opacity:1}}
+  @keyframes tickIn{to{opacity:.6}}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes expand{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+  @media (max-width:900px){ .charts{grid-template-columns:repeat(2,1fr)} header.top{flex-direction:column; align-items:flex-start} }
+  @media (max-width:520px){ .charts{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important}
+    .factline{stroke-dashoffset:0} .planline,.dot{opacity:1} .gaptick{opacity:.6}
+  }
+  @media print{ body{background:#fff;color:#000} .sheet{margin:0 auto;max-width:none} .hint{display:none} }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="top">
+    <div>
+      <h1>Выполнение целей по сегментам</h1>
+      <div class="sub">Сегменты XS · L · M · Private · период янв–авг 2026 · факт против плана</div>
+    </div>
+    <div class="legend">
+      <span class="it"><span class="lg-fact"></span> Факт</span>
+      <span class="it"><span class="lg-plan"></span> План</span>
+      <span class="it"><span class="lg-gap"><i style="background:var(--neg)"></i><i style="background:var(--pos)"></i></span> Отставание / опережение за месяц</span>
+    </div>
+  </header>
+  <div id="app"></div>
+  <footer class="note" id="src"></footer>
+</div>
+
+<script>
+const DATA = {"months": ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг"], "revenue": {"Private": {"Fact": [5752169.0, 6360589.0, 9319055.0, 11680425.0, 13457727.0, 13370715.0, 13307084.0, 13215489.0], "Target": [6334387.0, 7875017.0, 11039580.0, 11672600.0, 12617153.0, 11865937.0, 11278954.0, 11553265.0]}, "L": {"Fact": [31948301.0, 29279375.0, 33517678.0, 33447158.0, 38570103.0, 39931353.0, 40360577.0, 41389246.0], "Target": [29798253.0, 28284476.0, 33233928.0, 33648435.0, 35300845.0, 39704688.0, 41090519.0, 42390039.0]}, "M": {"Fact": [28037432.0, 26434804.0, 29939228.0, 31066845.0, 34177629.0, 33033694.0, 36065794.0, 35595952.0], "Target": [32057850.0, 30883604.0, 32756597.0, 33803796.0, 36863205.0, 36345652.0, 38135900.0, 39789725.0]}, "XS": {"Fact": [19307262.0, 20000273.0, 25537899.0, 28565701.0, 30454754.0, 31210777.0, 31388904.0, 31203698.0], "Target": [24095572.0, 26870869.0, 28391454.0, 33842334.0, 34714831.0, 33722755.0, 33256825.0, 36227547.0]}}, "items": {"Private": {"Fact": [48316.0, 43672.0, 51305.0, 49710.0, 51066.0, 50011.0, 51672.0, 51334.0], "Target": [56969.0, 54339.0, 63632.0, 65635.0, 68600.0, 67191.0, 68892.0, 68929.0]}, "L": {"Fact": [34641.0, 31350.0, 37189.0, 38134.0, 39779.0, 42036.0, 40353.0, 38541.0], "Target": [34502.0, 33796.0, 38883.0, 39677.0, 41271.0, 45095.0, 47304.0, 46699.0]}, "M": {"Fact": [28154.0, 25332.0, 28895.0, 29199.0, 28648.0, 27506.0, 29852.0, 28830.0], "Target": [32629.0, 31480.0, 34050.0, 34079.0, 35512.0, 35520.0, 37439.0, 37614.0]}, "XS": {"Fact": [24994.0, 22307.0, 28871.0, 29250.0, 29600.0, 28774.0, 28926.0, 27444.0], "Target": [32415.0, 31528.0, 36275.0, 37351.0, 37748.0, 36934.0, 37890.0, 37255.0]}}, "marketshare": {"XS": {"Fact": [57.62, 58.33, 59.66, 61.55, 60.63, 60.15, 59.6, 59.63], "Target": [59.58, 61.64, 64.86, 65.81, 64.84, 65.15, 64.12, 63.63], "Diff": [-1.96, -3.31, -5.2, -4.26, -4.21, -5.0, -4.51, -4.0]}, "L": {"Fact": [33.82, 35.62, 36.96, 38.67, 39.76, 41.83, 41.45, 39.69], "Target": [29.73, 32.91, 35.25, 36.34, 36.22, 42.43, 40.89, 41.68], "Diff": [4.09, 2.71, 1.71, 2.32, 3.54, -0.59, 0.57, -1.99]}, "M": {"Fact": [54.44, 55.83, 54.74, 55.15, 56.0, 57.29, 56.62, 55.78], "Target": [56.9, 58.38, 59.93, 59.3, 58.07, 58.85, 59.2, 59.97], "Diff": [-2.46, -2.55, -5.19, -4.15, -2.07, -1.55, -2.58, -4.19]}, "Private": {"Fact": [58.58, 59.35, 59.7, 60.54, 59.9, 59.85, 59.28, 59.13], "Target": [64.13, 66.4, 69.91, 71.57, 70.2, 70.43, 68.88, 68.87], "Diff": [-5.56, -7.05, -10.21, -11.03, -10.29, -10.57, -9.6, -9.74]}}, "summary": {"revenue": {"XS": {"fact": 217669268.0, "target": 251122187.0, "devpct": -13.321371321125042, "absdiff": -33452919.0, "weight": 27.91963294247492}, "L": {"fact": 288443791.0, "target": 283451183.0, "devpct": 1.761364319301495, "absdiff": 4992608.0, "weight": 31.513953749018153}, "M": {"fact": 254351378.0, "target": 280636329.0, "devpct": -9.366196847593455, "absdiff": -26284951.0, "weight": 31.200999758749433}, "Private": {"fact": 86463253.0, "target": 84236893.0, "devpct": 2.6429749729729446, "absdiff": 2226360.0, "weight": 9.365413549757493}}, "items": {"XS": {"fact": 220166.0, "target": 287396.0, "devpct": -23.392809920806133, "absdiff": -67230.0, "weight": 20.424224291520417}, "L": {"fact": 302023.0, "target": 327227.0, "devpct": -7.702298404471508, "absdiff": -25204.0, "weight": 23.254873562058457}, "M": {"fact": 226416.0, "target": 278323.0, "devpct": -18.649913948901098, "absdiff": -51907.0, "weight": 19.77943804885537}, "Private": {"fact": 397086.0, "target": 514187.0, "devpct": -22.77401023363096, "absdiff": -117101.0, "weight": 36.541464097565765}}, "marketshare": {"XS": {"fact": 59.63, "target": 63.63, "devpct": -6.286342920006282, "pp": -4.0, "weight": 23.719975950188356}, "L": {"fact": 39.69, "target": 41.68, "devpct": -4.774472168905952, "pp": -1.99, "weight": 29.397497868466555}, "M": {"fact": 55.78, "target": 59.97, "devpct": -6.9868267467066865, "pp": -4.19, "weight": 18.524809011206262}, "Private": {"fact": 59.13, "target": 68.87, "devpct": -14.142587483664881, "pp": -9.74, "weight": 28.35771717013883}}}, "details": {"XS": {"SS": {"revenue": {"Fact": [7888936.0, 8505655.0, 9959559.0, 10305430.0, 10099664.0, 9796299.0, 9893657.0, 10036250.0], "Target": [9013616.0, 9862312.0, 9620350.0, 11500798.0, 11650981.0, 11392871.0, 11121375.0, 12235087.0]}, "items": {"Fact": [11040.0, 9724.0, 11500.0, 10956.0, 10535.0, 9885.0, 10022.0, 9628.0], "Target": [14084.0, 13376.0, 14679.0, 14494.0, 14390.0, 14095.0, 14516.0, 14467.0]}, "marketshare": {"Fact": [56.93, 57.98, 58.85, 60.99, 59.72, 58.81, 58.2, 59.08], "Target": [57.0, 58.95, 60.6, 60.66, 58.33, 59.03, 58.42, 57.71], "Diff": [-0.06, -0.98, -1.75, 0.32, 1.38, -0.22, -0.22, 1.36]}}, "SUB": {"items": {"Fact": [13954.0, 12583.0, 17371.0, 18294.0, 19065.0, 18889.0, 18904.0, 17816.0], "Target": [18331.0, 18152.0, 21596.0, 22857.0, 23358.0, 22839.0, 23374.0, 22788.0]}, "revenue": {"Fact": [11418326.0, 11494618.0, 15578340.0, 18260271.0, 20355090.0, 21414478.0, 21495247.0, 21167448.0], "Target": [15081956.0, 17008557.0, 18771104.0, 22341536.0, 23063850.0, 22329884.0, 22135450.0, 23992460.0]}, "marketshare": {"Fact": [57.99, 58.52, 60.08, 61.81, 61.03, 60.69, 60.15, 59.84], "Target": [61.3, 63.4, 67.55, 68.89, 68.69, 68.74, 67.44, 67.09], "Diff": [-3.31, -4.88, -7.47, -7.08, -7.66, -8.05, -7.29, -7.25]}}}, "M": {"SS": {"revenue": {"Fact": [6903743.0, 6321831.0, 7111852.0, 6899003.0, 7646460.0, 7289266.0, 7619806.0, 7371736.0], "Target": [8197021.0, 7563593.0, 8028021.0, 8342869.0, 8939630.0, 8596191.0, 8798474.0, 8827018.0]}, "items": {"Fact": [8746.0, 7986.0, 9265.0, 8560.0, 8417.0, 8088.0, 8393.0, 8115.0], "Target": [11676.0, 10937.0, 12250.0, 12228.0, 12494.0, 12324.0, 12496.0, 12479.0]}, "marketshare": {"Fact": [68.48, 69.92, 69.28, 70.06, 69.73, 71.24, 67.7, 66.32], "Target": [71.71, 72.61, 76.06, 75.27, 72.86, 72.67, 71.63, 71.41], "Diff": [-3.23, -2.69, -6.77, -5.21, -3.13, -1.43, -3.93, -5.09]}}, "SUB": {"revenue": {"Fact": [21133689.0, 20112973.0, 22827376.0, 24167842.0, 26531169.0, 25744428.0, 28445988.0, 28224216.0], "Target": [23860829.0, 23320011.0, 24728576.0, 25460927.0, 27923575.0, 27749461.0, 29337426.0, 30962707.0]}, "items": {"Fact": [19408.0, 17346.0, 19630.0, 20639.0, 20231.0, 19418.0, 21459.0, 20715.0], "Target": [20953.0, 20543.0, 21800.0, 21851.0, 23018.0, 23196.0, 24943.0, 25135.0]}, "marketshare": {"Fact": [50.69, 52.22, 51.04, 51.46, 52.63, 53.95, 53.97, 53.29], "Target": [52.53, 54.14, 55.18, 54.58, 53.78, 54.82, 55.63, 56.68], "Diff": [-1.84, -1.92, -4.14, -3.12, -1.15, -0.87, -1.67, -3.39]}}}, "L": {"SS": {"items": {"Fact": [10107.0, 9029.0, 10005.0, 9896.0, 9489.0, 9242.0, 9176.0, 8671.0], "Target": [12434.0, 11438.0, 12795.0, 12670.0, 13155.0, 13059.0, 13671.0, 13341.0]}, "revenue": {"Fact": [7119484.0, 6242670.0, 6614828.0, 6636328.0, 6997076.0, 6661635.0, 6522732.0, 6226180.0], "Target": [7408269.0, 6421526.0, 6947642.0, 6916561.0, 7944238.0, 7823060.0, 8162804.0, 8535254.0]}, "marketshare": {"Fact": [53.53, 53.93, 55.61, 53.96, 52.89, 55.98, 56.29, 56.13], "Target": [51.53, 53.64, 53.24, 50.71, 49.83, 52.78, 54.67, 56.08], "Diff": [2.0, 0.29, 2.37, 3.24, 3.06, 3.19, 1.62, 0.05]}}, "SUB": {"revenue": {"Fact": [24828817.0, 23036705.0, 26902850.0, 26810830.0, 31573027.0, 33269718.0, 33837845.0, 35163066.0], "Target": [22389984.0, 21862950.0, 26286286.0, 26731874.0, 27356607.0, 31881628.0, 32927715.0, 33854785.0]}, "items": {"Fact": [24534.0, 22321.0, 27184.0, 28238.0, 30290.0, 32794.0, 31177.0, 29870.0], "Target": [22068.0, 22358.0, 26088.0, 27007.0, 28116.0, 32036.0, 33633.0, 33358.0]}, "marketshare": {"Fact": [28.93, 30.92, 32.32, 34.73, 36.55, 38.53, 38.08, 36.24], "Target": [23.46, 26.94, 29.86, 31.74, 31.77, 39.11, 36.74, 37.42], "Diff": [5.47, 3.99, 2.46, 2.99, 4.78, -0.58, 1.34, -1.19]}}}, "Private": {"SS": {"items": {"Fact": [14097.0, 12392.0, 13819.0, 12721.0, 12233.0, 12022.0, 12300.0, 12072.0], "Target": [19223.0, 17920.0, 19767.0, 19579.0, 19850.0, 19293.0, 19775.0, 19706.0]}, "revenue": {"Fact": [1395604.0, 1697154.0, 1998472.0, 2128576.0, 2184874.0, 2046766.0, 2167094.0, 2225450.0], "Target": [2120704.0, 2508847.0, 3198904.0, 3106426.0, 3129017.0, 2975422.0, 2970192.0, 3082958.0]}, "marketshare": {"Fact": [59.86, 60.82, 61.11, 62.07, 61.86, 62.92, 63.32, 63.63], "Target": [59.5, 60.73, 62.75, 63.38, 61.3, 62.16, 61.2, 61.46], "Diff": [0.36, 0.09, -1.65, -1.31, 0.55, 0.75, 2.12, 2.17]}}, "SUB": {"revenue": {"Fact": [4356565.0, 4663435.0, 7320583.0, 9551849.0, 11272853.0, 11323949.0, 11139990.0, 10990039.0], "Target": [4213683.0, 5366170.0, 7840676.0, 8566174.0, 9488136.0, 8890515.0, 8308762.0, 8470307.0]}, "items": {"Fact": [34219.0, 31280.0, 37486.0, 36989.0, 38833.0, 37989.0, 39372.0, 39262.0], "Target": [37746.0, 36419.0, 43865.0, 46056.0, 48750.0, 47898.0, 49117.0, 49223.0]}, "marketshare": {"Fact": [58.08, 58.8, 59.2, 60.03, 59.31, 58.98, 58.18, 57.97], "Target": [66.58, 69.39, 73.49, 75.47, 74.27, 74.13, 72.29, 72.14], "Diff": [-8.49, -10.6, -14.29, -15.44, -14.97, -15.15, -14.11, -14.17]}}}}, "totals": {"revenue": {"Fact": [85045164.0, 82075041.0, 98313860.0, 104760129.0, 116660213.0, 117546539.0, 121122359.0, 121404385.0], "Target": [92286062.0, 93913966.0, 105421559.0, 112967165.0, 119496034.0, 121639032.0, 123762198.0, 129960576.0]}, "items": {"Fact": [136105.0, 122661.0, 146260.0, 146293.0, 149093.0, 148327.0, 150803.0, 146149.0], "Target": [156515.0, 151143.0, 172840.0, 176742.0, 183131.0, 184740.0, 191525.0, 190497.0]}, "marketshare": {"Fact": [50.0, 51.33, 52.04, 53.3, 53.27, 54.13, 53.74, 52.98], "Target": [50.69, 53.2, 56.09, 57.23, 56.57, 58.81, 57.63, 57.99], "Diff": [-0.69, -1.88, -4.05, -3.93, -3.3, -4.68, -3.89, -5.0]}}};
+const MONTHS = DATA.months;
+const SEGS = ["XS","L","M","Private"];
+const METRIC_NAME = {revenue:"Выручка", items:"Items Net", marketshare:"Market share"};
+
+const comma = s => String(s).replace(".",",");
+function sign(n){ return n>0?"+":(n<0?"−":""); }
+function fmtPct(n,dec=1){ return sign(n)+comma(Math.abs(n).toFixed(dec))+"%"; }
+function ruInt(n){ return Math.round(Math.abs(n)).toLocaleString("ru-RU").replace(/\u00A0/g," "); }
+function fmtMoney(n){ return sign(n)+ruInt(n)+" ₽"; }
+function fmtUnits(n){ return sign(n)+ruInt(n)+" шт"; }
+function fmtPP(n,dec=2){ return sign(n)+comma(Math.abs(n).toFixed(dec))+" пп"; }
+function fmtWeight(n){ return comma(n.toFixed(1))+"%"; }
+function lagRevenue(v){ return "("+sign(v)+comma((Math.abs(v)/1e6).toFixed(1))+")"; }
+function lagItems(v){   return "("+sign(v)+comma((Math.abs(v)/1e3).toFixed(1))+")"; }
+function lagShare(v){   return "("+sign(v)+comma(Math.abs(v).toFixed(1))+")"; }
+const LAGFN = {revenue:lagRevenue, items:lagItems, marketshare:lagShare};
+function cls(v){ return v>=0?"pos":"neg"; }
+function attain(f,t){ return f/t*100; }
+function sum(a){ return a.reduce((x,y)=>x+y,0); }
+
+function chart(fact, plan, lagLabels, big){
+  const W=big?980:280, H=big?300:182;
+  const L=big?18:10, R=big?18:10, T=big?18:14, B=big?66:54;
+  const x0=L, x1=W-R, y0=T, y1=H-B, n=fact.length, step=(x1-x0)/(n-1);
+  const monthF=big?14:10, lagF=big?12.5:9.2, off1=big?24:16, off2=big?44:29;
+  const tickW=big?3.2:2.4, dotF=big?3.8:2.6, dotP=big?3.1:2.2, factW=big?3:2.4, planW=big?2.2:1.8, dash=big?"7 5":"5 4";
+  const all=fact.concat(plan); let mn=Math.min(...all), mx=Math.max(...all);
+  const pad=(mx-mn)*0.12 || 1; mn-=pad; mx+=pad;
+  const X=i=>x0+step*i, Y=v=>y1-(v-mn)/(mx-mn)*(y1-y0);
+  const path=arr=>arr.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+  let ticks="",dotsF="",dotsP="",xlab="";
+  for(let i=0;i<n;i++){
+    const fy=Y(fact[i]), py=Y(plan[i]);
+    const c = fact[i]>=plan[i] ? "var(--pos)" : "var(--neg)";
+    ticks+=`<line class="gaptick" x1="${X(i).toFixed(1)}" y1="${py.toFixed(1)}" x2="${X(i).toFixed(1)}" y2="${fy.toFixed(1)}" stroke="${c}" stroke-width="${tickW}"/>`;
+    dotsF+=`<circle class="dot" cx="${X(i).toFixed(1)}" cy="${fy.toFixed(1)}" r="${dotF}" fill="var(--fact)"/>`;
+    dotsP+=`<circle class="dot" cx="${X(i).toFixed(1)}" cy="${py.toFixed(1)}" r="${dotP}" fill="var(--panel2)" stroke="var(--plan)" stroke-width="1.3"/>`;
+    const lag=lagLabels[i], lc=lag.startsWith("(−")?"var(--neg)":(lag.startsWith("(+")?"var(--pos)":"var(--muted)");
+    xlab+=`<text x="${X(i).toFixed(1)}" y="${y1+off1}" text-anchor="middle" font-size="${monthF}" fill="var(--muted)">${MONTHS[i]}</text>`;
+    xlab+=`<text x="${X(i).toFixed(1)}" y="${y1+off2}" text-anchor="middle" font-size="${lagF}" fill="${lc}">${lag}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" preserveAspectRatio="xMidYMid meet">
+    <line x1="${x0}" y1="${y1}" x2="${x1}" y2="${y1}" stroke="var(--line)" stroke-width="1"/>
+    ${ticks}
+    <path class="planline" d="${path(plan)}" fill="none" stroke="var(--plan)" stroke-width="${planW}" stroke-dasharray="${dash}" stroke-linejoin="round"/>
+    <path class="factline" pathLength="1" d="${path(fact)}" fill="none" stroke="var(--fact)" stroke-width="${factW}" stroke-linejoin="round"/>
+    ${dotsP}${dotsF}${xlab}</svg>`;
+}
+
+function attLabel(metric, f, p){
+  if(metric==="marketshare"){ const a=f[7]-p[7]; return [a, fmtPP(a,1)]; }
+  const a=attain(sum(f),sum(p))-100; return [a, fmtPct(a)];
+}
+function lagsFor(metric, f, p, diff){
+  return metric==="marketshare" ? diff.map(v=>LAGFN[metric](v)) : f.map((v,i)=>LAGFN[metric](v-p[i]));
+}
+function segChart(metric, s){
+  const md=DATA[metric][s]; const [a,at]=attLabel(metric, md.Fact, md.Target);
+  const lags=lagsFor(metric, md.Fact, md.Target, md.Diff);
+  return `<div class="chart clickable" data-metric="${metric}" data-seg="${s}">
+    <div class="c-head"><span class="c-seg"><span class="chev">▸</span>${s}</span><span class="c-att ${cls(a)}">${at}</span></div>
+    ${chart(md.Fact, md.Target, lags)}</div>`;
+}
+function subChart(metric, seg, sub){
+  const md=DATA.details[seg][sub][metric];
+  const [a,at]=attLabel(metric, md.Fact, md.Target);
+  const lags=lagsFor(metric, md.Fact, md.Target, md.Diff||[]);
+  return `<div class="chart">
+    <div class="c-head"><span class="c-seg">${sub}</span><span class="c-att ${cls(a)}">${at}</span></div>
+    ${chart(md.Fact, md.Target, lags)}</div>`;
+}
+function renderDetail(metric, seg){
+  return `<div class="detail-inner">
+    <div class="detail-head">
+      <div class="t">Детализация · <b>${seg}</b> <span class="m">· ${METRIC_NAME[metric]} · разрез SS / SUB</span></div>
+      <button class="detail-close" data-metric="${metric}">Скрыть ✕</button>
+    </div>
+    <div class="charts two">${subChart(metric,seg,"SS")}${subChart(metric,seg,"SUB")}</div>
+  </div>`;
+}
+function totalChart(metric){
+  const md=DATA.totals[metric];
+  const [a,at]=attLabel(metric, md.Fact, md.Target);
+  const lags=lagsFor(metric, md.Fact, md.Target, md.Diff||[]);
+  const subt = metric==="marketshare" ? "Взвешенная доля по всем сегментам (по объёму рынка)" : "Сумма факта и плана по всем сегментам";
+  return `<div class="totalchart">
+    <div class="tc-head"><div class="tc-title">Итого по всем сегментам<span class="tc-sub">${subt}</span></div>
+      <span class="tc-att ${cls(a)}">${at}</span></div>
+    ${chart(md.Fact, md.Target, lags, true)}</div>`;
+}
+function pill(dev){ return `<span class="pill ${cls(dev)}">${fmtPct(dev)}</span>`; }
+function totalRow(metric, fmt){
+  let f=0,t=0; SEGS.forEach(s=>{f+=DATA.summary[metric][s].fact;t+=DATA.summary[metric][s].target;});
+  const dev=(f/t-1)*100, ab=f-t;
+  return `<tr class="total"><td>Итого</td><td class="wt">100,0%</td><td>${pill(dev)}</td><td class="num ${cls(ab)}">${fmt(ab)}</td></tr>`;
+}
+function buildBand(idx,title,unitNote,metric,tableCfg){
+  const md=DATA[metric];
+  let F=0,Tt=0; SEGS.forEach(s=>{F+=sum(md[s].Fact);Tt+=sum(md[s].Target);});
+  const roll = metric==="marketshare"
+     ? `Ср. доля факт ${comma((SEGS.reduce((a,s)=>a+md[s].Fact[7],0)/4).toFixed(1))}% против ${comma((SEGS.reduce((a,s)=>a+md[s].Target[7],0)/4).toFixed(1))}% плана`
+     : `Итого по плану выполнено <b>${comma(attain(F,Tt).toFixed(1))}%</b>`;
+  const charts = SEGS.map(s=>segChart(metric,s)).join("");
+  const rows = SEGS.map(s=>{ const sm=DATA.summary[metric][s];
+    return `<tr><td class="seg-name">${s}</td>
+      <td class="wt">${fmtWeight(sm.weight)}<div class="wtrack"><div class="wfill" style="width:${(sm.weight/40*100).toFixed(0)}%"></div></div></td>
+      <td>${pill(sm.devpct)}</td>
+      <td class="num ${cls(tableCfg.absVal(sm))}">${tableCfg.absFmt(tableCfg.absVal(sm))}</td></tr>`;}).join("");
+  return `<section class="band">
+    <div class="band-head"><div class="band-title"><span class="band-idx">${idx}</span><h2>${title}</h2></div>
+      <div class="band-roll">${roll}</div></div>
+    <div class="unit-note">${unitNote}</div>
+    ${totalChart(metric)}
+    <div class="breakdown"><span class="bd-title">Разбивка по сегментам</span><span class="bd-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>нажмите на сегмент, чтобы раскрыть SS / SUB</span></div>
+    <div class="charts" id="charts-${metric}">${charts}</div>
+    <div class="detailwrap" id="detail-${metric}"></div>
+    <table><caption>${tableCfg.caption}</caption>
+      <thead><tr><th>Сегмент</th><th>Вес в плане, %</th><th>Отклонение от плана, %</th><th>${tableCfg.absHead}</th></tr></thead>
+      <tbody>${rows}${tableCfg.total?totalRow(metric,tableCfg.absFmt):""}</tbody></table>
+  </section>`;
+}
+
+document.getElementById("app").innerHTML =
+  buildBand(1,"Выручка (Revenue) · выполнение плана",
+    "В скобках под каждым месяцем — отставание факта от плана за месяц, млн ₽.","revenue",
+    {caption:"Отклонение факта от плана нарастающим итогом за янв–авг 2026",
+     absHead:"Отклонение, ₽", absVal:s=>s.absdiff, absFmt:fmtMoney, total:true})
+  + buildBand(2,"Items Net · выполнение плана",
+    "В скобках под каждым месяцем — отставание факта от плана за месяц, тыс. шт.","items",
+    {caption:"Отклонение факта от плана нарастающим итогом за янв–авг 2026",
+     absHead:"Отклонение, шт", absVal:s=>s.absdiff, absFmt:fmtUnits, total:true})
+  + buildBand(3,"Market share · выполнение плана",
+    "В скобках под каждым месяцем — отставание доли факта от плана за месяц, пп.","marketshare",
+    {caption:"Отклонение доли от плана на август 2026; вес — доля сегмента в плановом объёме рынка (авг 2026)",
+     absHead:"Отклонение, пп", absVal:s=>s.pp, absFmt:v=>fmtPP(v,2), total:false});
+
+const openState={revenue:null, items:null, marketshare:null};
+function setDetail(metric, seg){
+  const wrap=document.getElementById("detail-"+metric);
+  const grid=document.getElementById("charts-"+metric);
+  const charts=grid.querySelectorAll(".chart.clickable");
+  if(openState[metric]===seg){
+    openState[metric]=null; wrap.classList.remove("open"); wrap.innerHTML="";
+    grid.classList.remove("has-selection"); charts.forEach(c=>c.classList.remove("selected")); return;
+  }
+  openState[metric]=seg; wrap.innerHTML=renderDetail(metric,seg); wrap.classList.add("open");
+  grid.classList.add("has-selection");
+  charts.forEach(c=>c.classList.toggle("selected", c.dataset.seg===seg));
+}
+document.addEventListener("click",e=>{
+  const close=e.target.closest(".detail-close");
+  if(close){ setDetail(close.dataset.metric, openState[close.dataset.metric]); return; }
+  const ch=e.target.closest(".chart.clickable");
+  if(ch){ setDetail(ch.dataset.metric, ch.dataset.seg); }
+});
+
+document.getElementById("src").innerHTML =
+  "Источник: MO_XS-ML__1_.xlsx (Revenue, Items, Market share XS/L/M, Private, листы «Детали по …»). " +
+  "Факт — сплошная линия, план — пунктир. Детализация раскрывает сегмент в разрезе SS и SUB. " +
+  "Таблицы по выручке и Items Net — нарастающим итогом за янв–авг 2026; Market share — на август 2026. " +
+  "Сегмент XS соответствует группе XS+S в исходных данных.";
+</script>
+</body>
+</html>

@@ -87,6 +87,7 @@
   .detail-close{border:1px solid var(--rule); background:#243244; color:var(--muted); font-size:12px;
     padding:4px 10px; border-radius:7px; cursor:pointer; transition:.18s}
   .detail-close:hover{color:var(--ink); border-color:#3d5169; background:#2a3a4e}
+  .c-year{font-size:12px; font-weight:700; padding:1px 4px 8px}
   .charts.two{grid-template-columns:repeat(2,1fr)}
   .charts.two .chart{background:#15202D}
 
@@ -217,12 +218,23 @@ function segChart(metric, s){
     <div class="c-head"><span class="c-seg"><span class="chev">▸</span>${s}</span><span class="c-att ${cls(a)}">${at}</span></div>
     ${chart(md.Fact, md.Target, lags)}</div>`;
 }
+function yearGap(metric, md){
+  if(metric==="marketshare"){
+    const arr=md.Diff||[]; const avg=arr.reduce((x,y)=>x+y,0)/(arr.length||1);
+    return [avg, (avg<0?"Не хватает доли за год: ":"Опережение доли за год: ")+fmtPP(avg,1)+" (в среднем)"];
+  }
+  const v=sum(md.Fact)-sum(md.Target);
+  const val = metric==="revenue" ? sign(v)+comma((Math.abs(v)/1e6).toFixed(1))+" млн ₽" : sign(v)+ruInt(v)+" шт";
+  return [v, (v<0?"Не хватает за год: ":"Опережение за год: ")+val];
+}
 function subChart(metric, seg, sub){
   const md=DATA.details[seg][sub][metric];
   const [a,at]=attLabel(metric, md.Fact, md.Target);
   const lags=lagsFor(metric, md.Fact, md.Target, md.Diff||[]);
+  const [gv,gtext]=yearGap(metric, md);
   return `<div class="chart">
     <div class="c-head"><span class="c-seg">${sub}</span><span class="c-att ${cls(a)}">${at}</span></div>
+    <div class="c-year ${cls(gv)}">${gtext}</div>
     ${chart(md.Fact, md.Target, lags)}</div>`;
 }
 function renderDetail(metric, seg){
